@@ -138,7 +138,43 @@ La console valide l'assaut et remonte fièrement le Hash complété des serveurs
 ---
 
 ## Étape 8 : Récolte du Sésame Final
-Muni à la fois des chemins API récupérés plus tôt dans le contexte XML et du Mot de passe extrait magiquement des blocs RAM par Frida, un programme d'interface Python custom baptisé `get_flag.py` va forcer une procédure d'identification. L'accès global est reconnu, le flag tant convoité tombe.
+
+Afin de finaliser l'attaque, nous rassemblons les secrets obtenus lors des étapes précédentes :
+- **Clé API et Configuration** : Récupérées dans le fichier `strings.xml`.
+- **Email** : `TK757567@pwnsec.xyz` (identifié en clair).
+- **Mot de passe** : Généré et intercepté dynamiquement grâce à notre hook Frida.
+
+Ces éléments sont injectés dans un script Python d'exploitation (`get_flag.py`) utilisant la bibliothèque `pyrebase` pour simuler une authentification légitime et interroger la base de données :
+
+```python
+import pyrebase
+
+config = {
+    "apiKey": "AIzaSyAXsK0qsx4RuLSA9C8IPSWd0eQ67HVHuJY",
+    "authDomain": "firestorm-9d3db.firebaseapp.com",
+    "databaseURL": "https://firestorm-9d3db-default-rtdb.firebaseio.com",
+    "storageBucket": "firestorm-9d3db.appspot.com",
+    "projectId": "firestorm-9d3db"
+}
+
+firebase = pyrebase.initialize_app(config)
+auth = firebase.auth()
+
+email = "TK757567@pwnsec.xyz"
+password = "LE_MOT_DE_PASSE_OBTENU_AVEC_FRIDA"   # Remplace par le mot de passe affiché par Frida
+
+user = auth.sign_in_with_email_and_password(email, password)
+print("Connexion reussie. Token obtenu.")
+
+db = firebase.database()
+
+# Récupération du flag depuis la base de données
+flag_data = db.get(user['idToken'])
+print("FLAG recupere :")
+print(flag_data.val())
+```
+
+Une fois le script exécuté, le serveur Firebase valide l'accès et délivre le drapeau final.
 
 ![Flag retrieval](./Images/flag.png)
 *Figure 8 : Intrusion distante Firebase et récupération terminale.*
